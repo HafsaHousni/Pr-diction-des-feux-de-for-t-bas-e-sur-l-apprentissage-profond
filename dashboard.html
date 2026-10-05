@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prédiction des Feux de Forêt — Dashboard</title>
+  <style>
+    :root {
+      --bleu:   #1a537a;
+      --bleu2:  #2e7da8;
+      --vert:   #27ae60;
+      --orange: #e67e22;
+      --rouge:  #e74c3c;
+      --gris:   #f4f6f9;
+      --texte:  #2c3e50;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--gris);
+      color: var(--texte);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--bleu) 0%, var(--bleu2) 100%);
+      color: #fff;
+      padding: 32px 40px 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.18);
+    }
+    header h1 { font-size: 1.9rem; font-weight: 700; margin-bottom: 6px; }
+    header p  { font-size: 1rem; opacity: .85; }
+    .badge-bar { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .badge {
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: .82rem;
+      font-weight: 600;
+    }
+
+    /* ── NAV TABS ── */
+    nav {
+      background: #fff;
+      border-bottom: 2px solid #dde3ea;
+      display: flex;
+      gap: 4px;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 6px rgba(0,0,0,.07);
+    }
+    nav button {
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 14px 20px;
+      font-size: .92rem;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    nav button.active, nav button:hover {
+      color: var(--bleu);
+      border-bottom-color: var(--bleu);
+    }
+
+    /* ── MAIN ── */
+    main { max-width: 1300px; margin: 0 auto; padding: 32px 24px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── CARDS ── */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 16px; margin-bottom: 32px; }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 22px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      border-left: 5px solid var(--bleu);
+      transition: transform .15s;
+    }
+    .card:hover { transform: translateY(-3px); }
+    .card.vert   { border-color: var(--vert); }
+    .card.orange { border-color: var(--orange); }
+    .card.rouge  { border-color: var(--rouge); }
+    .card-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: #888; margin-bottom: 8px; }
+    .card-value { font-size: 2rem; font-weight: 800; color: var(--bleu); }
+    .card.vert   .card-value { color: var(--vert); }
+    .card.orange .card-value { color: var(--orange); }
+    .card.rouge  .card-value { color: var(--rouge); }
+    .card-sub { font-size: .82rem; color: #999; margin-top: 4px; }
+
+    /* ── SECTIONS ── */
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--bleu);
+      margin: 28px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #dde3ea;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 6px; height: 22px;
+      background: var(--bleu);
+      border-radius: 3px;
+    }
+
+    /* ── FIGURE GRID ── */
+    .fig-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); }
+    .fig-card {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      transition: box-shadow .2s;
+    }
+    .fig-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.14); }
+    .fig-card img {
+      width: 100%;
+      display: block;
+      cursor: zoom-in;
+      transition: transform .2s;
+    }
+    .fig-card:hover img { transform: scale(1.01); }
+    .fig-caption {
+      padding: 10px 14px;
+      font-size: .82rem;
+      color: #555;
+      font-style: italic;
+      background: #fafbfc;
+      border-top: 1px solid #eee;
+    }
+    .fig-full { grid-column: 1 / -1; }
+
+    /* ── RESULTS TABLE ── */
+    .res-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .res-table thead tr { background: var(--bleu); color: #fff; }
+    .res-table th, .res-table td { padding: 13px 18px; text-align: center; font-size: .93rem; }
+    .res-table tbody tr:nth-child(even) { background: #f0f6fa; }
+    .res-table tbody tr:hover { background: #dceef8; }
+    .res-table .winner { font-weight: 800; color: var(--vert); }
+    .res-table .loser  { color: var(--texte); }
+    .bar-cell { display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .bar { height: 8px; border-radius: 4px; background: var(--bleu); }
+
+    /* ── PIPELINE ── */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin: 18px 0;
+    }
+    .pipe-step {
+      background: var(--bleu);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      text-align: center;
+      min-width: 120px;
+    }
+    .pipe-step.alt { background: var(--bleu2); }
+    .pipe-step.green { background: var(--vert); }
+    .pipe-step.orange { background: var(--orange); }
+    .pipe-arrow {
+      font-size: 1.4rem;
+      color: var(--bleu);
+      padding: 0 6px;
+    }
+
+    /* ── ARCH CARDS ── */
+    .arch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 700px) { .arch-grid { grid-template-columns: 1fr; } }
+    .arch-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    .arch-card h3 { color: var(--bleu); margin-bottom: 14px; font-size: 1.05rem; }
+    .layer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 10px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      font-size: .85rem;
+    }
+    .layer-row:nth-child(odd) { background: #f0f6fa; }
+    .layer-name { font-weight: 600; color: var(--bleu); }
+    .layer-shape { color: #888; font-family: monospace; font-size: .82rem; }
+
+    /* ── MODAL ── */
+    #modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.85);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    #modal.open { display: flex; }
+    #modal img { max-width: 92vw; max-height: 90vh; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+    #modal-close {
+      position: absolute; top: 20px; right: 28px;
+      font-size: 2rem; color: #fff; cursor: pointer;
+      background: none; border: none; line-height: 1;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #aaa;
+      font-size: .82rem;
+      background: #fff;
+      border-top: 1px solid #eee;
+      margin-top: 48px;
+    }
+
+    /* ── PROGRESS BARS ── */
+    .metric-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .metric-label { width: 120px; font-size: .85rem; font-weight: 600; text-align: right; color: #555; }
+    .metric-bar-wrap { flex: 1; background: #eee; border-radius: 6px; height: 14px; overflow: hidden; }
+    .metric-bar-fill { height: 100%; border-radius: 6px; transition: width 1s ease; }
+    .metric-val { width: 60px; font-size: .88rem; font-weight: 700; }
+    .m-alex { background: linear-gradient(90deg, #3498db, #5dade2); }
+    .m-res  { background: linear-gradient(90deg, #e74c3c, #f1948a); }
+  </style>
+</head>
+<body>
+
+<!-- MODAL ZOOM -->
+<div id="modal">
+  <button id="modal-close" onclick="closeModal()">✕</button>
+  <img id="modal-img" src="" alt="zoom"/>
+</div>
+
+<!-- HEADER -->
+<header>
+  <h1>🔥 Prédiction des Feux de Forêt — Deep Learning</h1>
+  <p>Comparaison AlexNet-1D vs ResNet-1D sur données MODIS NASA — Turquie 2020</p>
+  <div class="badge-bar">
+    <span class="badge">📡 Dataset MODIS</span>
+    <span class="badge">8 834 observations</span>
+    <span class="badge">12 features</span>
+    <span class="badge">3 classes</span>
+    <span class="badge">TensorFlow / Keras</span>
+    <span class="badge">SMOTE + class_weight</span>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <button class="active" onclick="showTab('vue-ensemble')">Vue d'ensemble</button>
+  <button onclick="showTab('eda')">EDA</button>
+  <button onclick="showTab('preprocessing')">Prétraitement</button>
+  <button onclick="showTab('architectures')">Architectures CNN</button>
+  <button onclick="showTab('resultats')">Résultats</button>
+  <button onclick="showTab('comparaison')">Comparaison</button>
+</nav>
+
+<main>
+
+<!-- ══════════════════════ TAB 1 : VUE D'ENSEMBLE ══════════════════════ -->
+<section id="vue-ensemble" class="tab-content active">
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Observations</div>
+      <div class="card-value">8 834</div>
+      <div class="card-sub">15 colonnes brutes → 12 features finales</div>
+    </div>
+    <div class="card vert">
+      <div class="card-label">Meilleur F1-score</div>
+      <div class="card-value">90.67%</div>
+      <div class="card-sub">ResNet-1D + SMOTE</div>
+    </div>
+    <div class="card orange">
+      <div class="card-label">Déséquilibre max</div>
+      <div class="card-value">1172:1</div>
+      <div class="card-sub">Classe 0 vs Classe 3</div>
+    </div>
+    <div class="card rouge">
+      <div class="card-label">Figures générées</div>
+      <div class="card-value">10</div>
+      <div class="card-sub">EDA + Entraînement + Résultats</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Paramètres AlexNet</div>
+      <div class="card-value">487K</div>
+      <div class="card-sub">5 blocs Conv1D + 2 FC</div>
+    </div>
+    <div class="card vert">
+      <div class="card-label">Paramètres ResNet</div>
+      <div class="card-value">597K</div>
+      <div class="card-sub">5 blocs résiduels</div>
+    </div>
+  </div>
+
+  <div class="section-title">Distribution des classes (déséquilibre critique)</div>
+  <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:24px;">
+    <div class="metric-row">
+      <span class="metric-label">Classe 0 🌿</span>
+      <div class="metric-bar-wrap"><div class="metric-bar-fill m-alex" style="width:92.9%"></div></div>
+      <span class="metric-val" style="color:var(--bleu)">8 208 (92.9%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Classe 2 🌋</span>
+      <div class="metric-bar-wrap"><div class="metric-bar-fill m-res" style="width:7%"></div></div>
+      <span class="metric-val" style="color:var(--rouge)">619 (7.0%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Classe 3 🔥</span>
+      <div class="metric-bar-wrap"><div class="metric-bar-fill" style="width:0.08%;background:#f39c12"></div></div>
+      <span class="metric-val" style="color:var(--orange)">7 (0.08%)</span>
+    </div>
+  </div>
+
+  <div class="section-title">Pipeline du projet</div>
+  <div class="pipeline">
+    <div class="pipe-step">📂 Données MODIS<br/><small>8834 × 15</small></div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step alt">📊 EDA<br/><small>6 figures</small></div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step alt">⚙️ Prétraitement<br/><small>12 features</small></div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step orange">⚖️ SMOTE<br/>class_weight</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step">🧠 CNN 1D<br/><small>Reshape (n,12,1)</small></div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step green">✅ Évaluation<br/><small>F1 · RMSE · CM</small></div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════ TAB 2 : EDA ══════════════════════ -->
+<section id="eda" class="tab-content">
+  <div class="section-title">Distribution de la variable cible</div>
+  <div class="fig-grid">
+    <div class="fig-card fig-full">
+      <img src="outputs/figures/01_distribution_cible.png" alt="Distribution cible" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 1 — Distribution de la variable cible 'type' : déséquilibre extrême (92.9% / 7.0% / 0.08%)</div>
+    </div>
+  </div>
+
+  <div class="section-title">Distributions des features numériques</div>
+  <div class="fig-grid">
+    <div class="fig-card fig-full">
+      <img src="outputs/figures/02_distributions_features.png" alt="Distributions" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 2 — Histogrammes des variables numériques (brightness quasi-normal, frp fortement asymétrique)</div>
+    </div>
+  </div>
+
+  <div class="section-title">Matrice de corrélation</div>
+  <div class="fig-grid">
+    <div class="fig-card fig-full">
+      <img src="outputs/figures/03_matrice_correlation.png" alt="Corrélation" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 3 — Corrélation de Pearson : brightness↔bright_t31 élevée, frp meilleur prédicteur de type</div>
+    </div>
+  </div>
+
+  <div class="section-title">Boxplots par classe & Répartition temporelle</div>
+  <div class="fig-grid">
+    <div class="fig-card">
+      <img src="outputs/figures/04_boxplots_par_classe.png" alt="Boxplots" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 4 — Pouvoir discriminant des features principales par classe</div>
+    </div>
+    <div class="fig-card">
+      <img src="outputs/figures/05_repartition_mensuelle.png" alt="Temporel" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 5 — Saisonnalité : pic juillet–septembre 2020 (saison sèche)</div>
+    </div>
+  </div>
+
+  <div class="section-title">Répartition géographique</div>
+  <div class="fig-grid">
+    <div class="fig-card fig-full">
+      <img src="outputs/figures/06_carte_geographique.png" alt="Carte" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 6 — Localisation GPS des détections — côte méditerranéenne et égéenne (Turquie 2020)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ TAB 3 : PRÉTRAITEMENT ══════════════════════ -->
+<section id="preprocessing" class="tab-content">
+
+  <div class="section-title">Effet de SMOTE sur les classes</div>
+  <div class="fig-grid">
+    <div class="fig-card fig-full">
+      <img src="outputs/figures/07_smote_comparison.png" alt="SMOTE" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 7 — Distribution avant/après SMOTE : 7 067 → 19 698 exemples (3 classes à 6 566 chacune)</div>
+    </div>
+  </div>
+
+  <div class="section-title">Résumé des étapes de prétraitement</div>
+  <table class="res-table">
+    <thead><tr><th>Étape</th><th>Action</th><th>Résultat</th></tr></thead>
+    <tbody>
+      <tr><td>1. Nettoyage</td><td>Suppression instrument, version (constantes)</td><td>15 → 13 colonnes</td></tr>
+      <tr><td>2. Encodage</td><td>satellite : A→0 / B→1 · daynight : D→0 / N→1</td><td>2 nouvelles features numériques</td></tr>
+      <tr><td>3. Feature eng.</td><td>acq_date → mois (1–12) · acq_time → heure (0–23)</td><td>+2 features temporelles</td></tr>
+      <tr><td>4. Split stratifié</td><td>80% train / 20% test (stratify=y)</td><td>7 067 / 1 767 exemples</td></tr>
+      <tr><td>5A. class_weight</td><td>w₀=0.36 · w₂=4.76 · w₃=392.6</td><td>Poids dans model.fit()</td></tr>
+      <tr><td>5B. SMOTE</td><td>k_neighbors=2 · toutes classes → 6 566</td><td>7 067 → 19 698 exemples</td></tr>
+      <tr><td>6. Normalisation</td><td>StandardScaler z-score (fit sur train uniquement)</td><td>12 features normalisées</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Poids de classes calculés (AlexNet-1D)</div>
+  <div class="cards">
+    <div class="card vert"><div class="card-label">Classe 0 — Végétation</div><div class="card-value">0.36</div><div class="card-sub">Peu pénalisée (majoritaire)</div></div>
+    <div class="card orange"><div class="card-label">Classe 2 — Volcan</div><div class="card-value">4.76</div><div class="card-sub">13× plus pénalisée</div></div>
+    <div class="card rouge"><div class="card-label">Classe 3 — Autre</div><div class="card-value">392.6</div><div class="card-sub">1 094× plus pénalisée</div></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ TAB 4 : ARCHITECTURES ══════════════════════ -->
+<section id="architectures" class="tab-content">
+
+  <div class="section-title">Reshape : données tabulaires → 1D-CNN</div>
+  <div style="background:#fff;border-radius:12px;padding:22px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:24px;font-family:monospace;font-size:.95rem;color:var(--texte)">
+    <b>X.shape avant :</b> (n, 12) &nbsp;→&nbsp; <b>X.reshape(n, 12, 1)</b> &nbsp;→&nbsp; <b>X.shape après :</b> (n, 12, 1)<br/>
+    <br/>
+    Conv1D attend (batch_size, steps, channels) :<br/>
+    &nbsp;&nbsp;steps = 12 &nbsp;<span style="color:#888"># nombre de features</span><br/>
+    &nbsp;&nbsp;channels = 1 &nbsp;<span style="color:#888"># chaque feature est un scalaire</span><br/>
+    <br/>
+    <span style="color:#888"># Ordre sémantique des features dans la séquence :</span><br/>
+    [0] latitude &nbsp; [1] longitude &nbsp; [2] brightness &nbsp; [3] scan &nbsp; [4] track<br/>
+    [5] satellite &nbsp; [6] confidence &nbsp; [7] bright_t31 &nbsp; [8] frp<br/>
+    [9] daynight &nbsp; [10] mois &nbsp; [11] heure
+  </div>
+
+  <div class="arch-grid">
+    <div class="arch-card">
+      <h3>🏛️ AlexNet-1D &nbsp;<small style="color:#888;font-weight:400">487 619 paramètres</small></h3>
+      <div class="layer-row"><span class="layer-name">Input</span><span class="layer-shape">(12, 1)</span></div>
+      <div class="layer-row"><span class="layer-name">Conv1D(64,k=3) + BN + ReLU</span><span class="layer-shape">(12, 64)</span></div>
+      <div class="layer-row"><span class="layer-name">Conv1D(128,k=3) + BN + MaxPool</span><span class="layer-shape">(6, 128)</span></div>
+      <div class="layer-row"><span class="layer-name">Conv1D(256,k=3) + BN + ReLU</span><span class="layer-shape">(6, 256)</span></div>
+      <div class="layer-row"><span class="layer-name">Conv1D(256,k=3) + BN + ReLU</span><span class="layer-shape">(6, 256)</span></div>
+      <div class="layer-row"><span class="layer-name">Conv1D(128,k=3) + BN + MaxPool</span><span class="layer-shape">(3, 128)</span></div>
+      <div class="layer-row"><span class="layer-name">GlobalAvgPool1D</span><span class="layer-shape">(128,)</span></div>
+      <div class="layer-row"><span class="layer-name">Dense(256) + Dropout(0.5)</span><span class="layer-shape">(256,)</span></div>
+      <div class="layer-row"><span class="layer-name">Dense(128) + Dropout(0.3)</span><span class="layer-shape">(128,)</span></div>
+      <div class="layer-row" style="background:#e8f5e9"><span class="layer-name">Dense(3, softmax)</span><span class="layer-shape">(3,)</span></div>
+      <p style="margin-top:14px;font-size:.82rem;color:#888">Stratégie : <b>class_weight</b> · Régularisation : L2(1e-4) + Dropout</p>
+    </div>
+
+    <div class="arch-card">
+      <h3>🔗 ResNet-1D &nbsp;<small style="color:#888;font-weight:400">597 443 paramètres</small></h3>
+      <div class="layer-row"><span class="layer-name">Input</span><span class="layer-shape">(12, 1)</span></div>
+      <div class="layer-row"><span class="layer-name">Conv1D(64,k=3) + BN + ReLU</span><span class="layer-shape">(12, 64)</span></div>
+      <div class="layer-row" style="border-left:3px solid #3498db;padding-left:10px"><span class="layer-name">ResBlock(64) × 2</span><span class="layer-shape">(12, 64)</span></div>
+      <div class="layer-row" style="border-left:3px solid #e74c3c;padding-left:10px"><span class="layer-name">ResBlock(128) × 2 + proj</span><span class="layer-shape">(12, 128)</span></div>
+      <div class="layer-row" style="border-left:3px solid #f39c12;padding-left:10px"><span class="layer-name">ResBlock(256) × 1 + proj</span><span class="layer-shape">(12, 256)</span></div>
+      <div class="layer-row"><span class="layer-name">GlobalAvgPool1D</span><span class="layer-shape">(256,)</span></div>
+      <div class="layer-row"><span class="layer-name">Dense(128) + Dropout(0.3)</span><span class="layer-shape">(128,)</span></div>
+      <div class="layer-row" style="background:#e8f5e9"><span class="layer-name">Dense(3, softmax)</span><span class="layer-shape">(3,)</span></div>
+      <p style="margin-top:14px;font-size:.82rem;color:#888">
+        Bloc résiduel : <b>H(x) = F(x) + x</b><br/>
+        Stratégie : <b>SMOTE</b> · Régularisation : L2(1e-4) + Skip connections
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ TAB 5 : RÉSULTATS ══════════════════════ -->
+<section id="resultats" class="tab-content">
+
+  <div class="section-title">Courbes d'entraînement</div>
+  <div class="fig-grid">
+    <div class="fig-card">
+      <img src="outputs/figures/08_courbes_alexnet_1d.png" alt="Courbes AlexNet" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 8a — AlexNet-1D : convergence rapide (meilleure époque = 2), EarlyStopping à l'époque 12</div>
+    </div>
+    <div class="fig-card">
+      <img src="outputs/figures/08_courbes_resnet_1d.png" alt="Courbes ResNet" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 8b — ResNet-1D : 50 époques complètes, val_accuracy finale = 100%, val_loss = 0.0602</div>
+    </div>
+  </div>
+
+  <div class="section-title">Matrices de confusion</div>
+  <div class="fig-grid">
+    <div class="fig-card">
+      <img src="outputs/figures/09_confusion_alexnet_1d.png" alt="Confusion AlexNet" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 9a — AlexNet-1D (brute + normalisée) · Classe 2 recall = 31%</div>
+    </div>
+    <div class="fig-card">
+      <img src="outputs/figures/09_confusion_resnet_1d.png" alt="Confusion ResNet" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 9b — ResNet-1D (brute + normalisée) · Classe 2 recall = 40%</div>
+    </div>
+  </div>
+
+  <div class="section-title">Rapport de classification par classe</div>
+  <div class="arch-grid">
+    <div>
+      <h3 style="color:var(--bleu);margin-bottom:12px">AlexNet-1D (class_weight)</h3>
+      <table class="res-table">
+        <thead><tr><th>Classe</th><th>Précision</th><th>Rappel</th><th>F1</th><th>Support</th></tr></thead>
+        <tbody>
+          <tr><td>0 — Végétation</td><td>0.95</td><td>0.95</td><td>0.95</td><td>1 642</td></tr>
+          <tr><td>2 — Volcan</td><td>0.30</td><td>0.31</td><td>0.31</td><td>124</td></tr>
+          <tr><td>3 — Autre</td><td>0.00</td><td>0.00</td><td>0.00</td><td>1</td></tr>
+          <tr style="font-weight:700;background:#dceef8"><td>Weighted avg</td><td>0.90</td><td>0.90</td><td>0.90</td><td>1 767</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3 style="color:var(--rouge);margin-bottom:12px">ResNet-1D (SMOTE)</h3>
+      <table class="res-table">
+        <thead><tr><th>Classe</th><th>Précision</th><th>Rappel</th><th>F1</th><th>Support</th></tr></thead>
+        <tbody>
+          <tr><td>0 — Végétation</td><td>0.95</td><td>0.94</td><td>0.95</td><td>1 642</td></tr>
+          <tr><td>2 — Volcan</td><td>0.35</td><td>0.40</td><td>0.37</td><td>124</td></tr>
+          <tr><td>3 — Autre</td><td>0.00</td><td>0.00</td><td>0.00</td><td>1</td></tr>
+          <tr style="font-weight:700;background:#fde8d8"><td>Weighted avg</td><td>0.91</td><td>0.90</td><td>0.91</td><td>1 767</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ TAB 6 : COMPARAISON ══════════════════════ -->
+<section id="comparaison" class="tab-content">
+
+  <div class="cards">
+    <div class="card vert">
+      <div class="card-label">🏆 Meilleur modèle</div>
+      <div class="card-value" style="font-size:1.3rem">ResNet-1D</div>
+      <div class="card-sub">+0.57% F1 · −0.0085 RMSE</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Meilleure convergence</div>
+      <div class="card-value" style="font-size:1.3rem">AlexNet</div>
+      <div class="card-sub">Époque 2 (EarlyStopping ep.12)</div>
+    </div>
+    <div class="card orange">
+      <div class="card-label">Meilleur recall volcans</div>
+      <div class="card-value" style="font-size:1.3rem">40%</div>
+      <div class="card-sub">ResNet-1D (+29% vs AlexNet)</div>
+    </div>
+  </div>
+
+  <div class="section-title">Tableau comparatif global</div>
+  <table class="res-table">
+    <thead>
+      <tr><th>Modèle</th><th>Stratégie</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1-score</th><th>RMSE</th><th>Époques</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>AlexNet-1D</b></td><td>class_weight</td>
+        <td class="loser">90.04%</td><td class="loser">90.17%</td><td class="loser">90.04%</td>
+        <td class="loser">90.10%</td><td class="loser">0.6334</td><td>12 (best=2)</td>
+      </tr>
+      <tr>
+        <td><b>ResNet-1D</b></td><td>SMOTE</td>
+        <td class="winner">90.38%</td><td class="winner">91.00%</td><td class="winner">90.38%</td>
+        <td class="winner">90.67%</td><td class="winner">0.6249</td><td class="winner">50</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Comparaison visuelle des métriques</div>
+  <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.07);">
+    <div style="display:flex;gap:20px;margin-bottom:16px;font-size:.85rem;">
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:18px;height:10px;background:linear-gradient(90deg,#3498db,#5dade2);border-radius:3px;display:inline-block"></span>AlexNet-1D</span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:18px;height:10px;background:linear-gradient(90deg,#e74c3c,#f1948a);border-radius:3px;display:inline-block"></span>ResNet-1D</span>
+    </div>
+    <div id="metric-bars"></div>
+  </div>
+
+  <div class="section-title">Figure comparative finale</div>
+  <div class="fig-grid">
+    <div class="fig-card fig-full">
+      <img src="outputs/figures/10_comparaison_finale.png" alt="Comparaison" onclick="openModal(this.src)"/>
+      <div class="fig-caption">Figure 10 — Tableau et barres comparatives : ResNet-1D domine sur toutes les métriques</div>
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+<footer>
+  Projet de Fin d'Année — Prédiction des Feux de Forêt par Deep Learning (CNN 1D) &nbsp;·&nbsp; Dataset MODIS NASA FIRMS — Turquie 2020
+</footer>
+
+<script>
+  // Tabs
+  function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // Modal
+  function openModal(src) {
+    document.getElementById('modal-img').src = src;
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  document.getElementById('modal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+  // Metric bars animation
+  const metrics = [
+    { label: 'Accuracy',  alex: 90.04, res: 90.38 },
+    { label: 'Precision', alex: 90.17, res: 91.00 },
+    { label: 'Recall',    alex: 90.04, res: 90.38 },
+    { label: 'F1-score',  alex: 90.10, res: 90.67 },
+  ];
+  const container = document.getElementById('metric-bars');
+  metrics.forEach(m => {
+    container.innerHTML += `
+      <div style="margin-bottom:16px">
+        <div style="font-weight:700;font-size:.88rem;color:#444;margin-bottom:6px">${m.label}</div>
+        <div class="metric-row">
+          <span class="metric-label">AlexNet-1D</span>
+          <div class="metric-bar-wrap"><div class="metric-bar-fill m-alex" style="width:0%" data-w="${m.alex}"></div></div>
+          <span class="metric-val">${m.alex}%</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">ResNet-1D</span>
+          <div class="metric-bar-wrap"><div class="metric-bar-fill m-res" style="width:0%" data-w="${m.res}"></div></div>
+          <span class="metric-val">${m.res}%</span>
+        </div>
+      </div>`;
+  });
+
+  // Animate bars when tab is visible
+  function animateBars() {
+    document.querySelectorAll('.metric-bar-fill[data-w]').forEach(bar => {
+      const w = parseFloat(bar.getAttribute('data-w'));
+      setTimeout(() => bar.style.width = w + '%', 100);
+    });
+  }
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(btn.textContent.includes('Comparaison')) setTimeout(animateBars, 50);
+    });
+  });
+</script>
+</body>
+</html>

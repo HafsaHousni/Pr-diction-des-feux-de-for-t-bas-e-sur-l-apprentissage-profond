@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\\\\data\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\\\\outputs\\\\figures\")",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\\\\outputs\\\\models\")",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\\\\outputs\\\\results\")",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\\\\src\")",
+      "Bash(Write-Host \"Dossiers créés.\")",
+      "PowerShell(cd \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\"; $env:PYTHONIOENCODING=\"utf-8\"; python 01_eda.py 2>&1)",
+      "PowerShell(cd \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\"; $env:PYTHONIOENCODING=\"utf-8\"; python 02_preprocessing.py 2>&1)",
+      "PowerShell(cd \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\"; $env:PYTHONIOENCODING=\"utf-8\"; $env:TF_ENABLE_ONEDNN_OPTS=\"0\"; $env:TF_CPP_MIN_LOG_LEVEL=\"2\"; python 03_train_evaluate.py 2>&1)",
+      "PowerShell(cd \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\"; $env:PYTHONIOENCODING=\"utf-8\"; $env:TF_CPP_MIN_LOG_LEVEL=\"2\"; python 04_comparison.py 2>&1)",
+      "PowerShell(cd \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\"; $env:PYTHONIOENCODING=\"utf-8\"; python generate_report.py 2>&1)",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\PFA4\\\\dashboard.html\")",
+      "Bash(TF_CPP_MIN_LOG_LEVEL=3 streamlit run app.py --server.port 8501)",
+      "Bash(python -c ' *)",
+      "Bash(pkill -f \"streamlit run app.py\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8501)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" http://localhost:8501)"
+    ]
+  }
+}
